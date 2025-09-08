@@ -3,6 +3,7 @@ from OpenGL.GLUT import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import GLUT_BITMAP_HELVETICA_18
 import random
+from time import time
 
 # ----------------------------
 # Camera & world config
@@ -14,6 +15,8 @@ GRID_LENGTH = 500
 # Grid centers (6x6)
 a = -GRID_LENGTH + GRID_LENGTH/6   # center of first cell
 b = GRID_LENGTH/3                  # cell width
+
+program_start_time = time()
 
 # ----------------------------
 # Enemy state
@@ -65,7 +68,7 @@ game_over = False
 consecutive_green_hits = 0
 
 in_bonus_round = False
-BONUS_DURATION_MS = 10000   # 10 seconds bonus
+BONUS_DURATION_MS = 5000   # 5 seconds bonus
 bonus_row_index = 0         # 0..5 row to stick to
 bonus_end_time_ms = 0
 
@@ -113,6 +116,9 @@ def reset_game():
     speed_change_score = 0  # reset the gating counter
 
     enemy_position()        # new position + (maybe) color
+
+def get_elapsed_time():
+    return int((time() - program_start_time) * 1000)
 
 def trigger_bonus_round():
     """Enable bonus: only green enemies, fixed row, golden row tint."""
@@ -355,6 +361,7 @@ def idle():
     global life, score, misses, spawn_time_tracker
     global consecutive_green_hits, in_bonus_round
     global strike_rotate, strike_direction
+    global bonus_end_time_ms
 
     # advance pulse
     random_var += 1
@@ -363,14 +370,13 @@ def idle():
 
     # Bonus timer check
     if in_bonus_round:
-        now = glutGet(GLUT_ELAPSED_TIME)
+        now = get_elapsed_time()
         if now >= bonus_end_time_ms:
             end_bonus_round()
 
     respawned_this_frame = False
 
     if not game_over:
-        # ------- Strike resolution -------
         if hit:
             inc = 5
             if strike_direction == 1:
@@ -412,6 +418,7 @@ def idle():
                 else:
                     # WRONG CELL: end strike and break combo (no score, no speed change)
                     consecutive_green_hits = 0
+                    misses += 1
 
                 # end the strike either way
                 hit = False
@@ -501,7 +508,7 @@ def showScreen():
         draw_text(10, 490, "Space=Strike  Arrows=Move  R=Restart")
         draw_text(10, 470, f"Combo (Green x5): {consecutive_green_hits}/5")
         if in_bonus_round:
-            remaining = max(0, (bonus_end_time_ms - glutGet(GLUT_ELAPSED_TIME)) // 1000)
+            remaining = max(0, (bonus_end_time_ms - glutGet(get_elapsed_time())) // 1000)
             draw_text(10, 450, f"BONUS ROUND! Row {bonus_row_index+1}  ({remaining}s left)")
 
     # hammer + shadow
